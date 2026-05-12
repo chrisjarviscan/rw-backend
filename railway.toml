@@ -1,0 +1,5 @@
+[railway]
+  builder = "python"
+  run = "python app/main.py"
+  [python]
+  version = "3.11"
