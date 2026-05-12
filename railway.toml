@@ -1,5 +1,6 @@
 [railway]
-  builder = "python"
-  run = "python app/main.py"
-  [python]
-  version = "3.11"
+builder = "nixpacks"
+run = "python app/main.py"
+
+[python]
+version = "3.11"
