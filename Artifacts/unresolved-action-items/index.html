@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<script type="application/json" id="cowork-artifact-meta">
+{
+  "name": "Unresolved Action Items",
+  "schemaVersion": 1,
+  "description": "Live tracker pulling 30 days of Fathom meetings and surfacing unresolved action items, grouped by assigned-to-Chris vs. team, with age indicators and direct links to Fathom playback timestamps.",
+  "mcpTools": [
+    "mcp__fathom-organizer__list_meetings"
+  ],
+  "mcpServerNames": [
+    "fathom-organizer"
+  ]
+}
+</script>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unresolved Action Items</title>
+<style>
+  :root { color-scheme: light; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f4f5f7; color: #1a1f2e; padding: 20px; font-size: 14px; }
+  header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; }
+  h1 { font-size: 17px; font-weight: 700; color: #0B1D32; }
+  .subtitle { font-size: 11px; color: #9ca3af; margin-top: 3px; }
+  .refresh-btn { background: #F15A2E; color: white; border: none; border-radius: 6px; padding: 7px 14px; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .refresh-btn:hover { background: #d94e25; }
+  .refresh-btn:disabled { background: #ccc; cursor: not-allowed; }
+  .stats-row { display: flex; gap: 10px; margin-bottom: 20px; }
+  .stat-card { background: white; border-radius: 8px; padding: 12px 14px; flex: 1; border: 1px solid #e5e7eb; }
+  .stat-number { font-size: 26px; font-weight: 700; color: #0B1D32; line-height: 1; }
+  .stat-number.orange { color: #F15A2E; }
+  .stat-label { font-size: 10px; color: #9ca3af; margin-top: 3px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .section-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #9ca3af; margin: 18px 0 8px; padding-bottom: 6px; border-bottom: 1px solid #e5e7eb; }
+  .section-label.mine { color: #F15A2E; }
+  .meeting-group { margin-bottom: 14px; }
+  .meeting-label { font-size: 11px; font-weight: 600; color: #6b7280; margin-bottom: 5px; display: flex; align-items: center; gap: 6px; }
+  .meeting-date-tag { font-size: 10px; color: #9ca3af; font-weight: 400; }
+  .action-item { background: white; border: 1px solid #e9ebee; border-radius: 8px; padding: 11px 13px; margin-bottom: 5px; display: flex; align-items: flex-start; gap: 9px; }
+  .action-item.done { opacity: 0.38; }
+  .action-item.done .item-desc { text-decoration: line-through; }
+  .check-btn { width: 17px; height: 17px; border-radius: 50%; border: 2px solid #d1d5db; background: none; cursor: pointer; flex-shrink: 0; margin-top: 2px; font-size: 10px; display: flex; align-items: center; justify-content: center; color: white; }
+  .check-btn.done { background: #F15A2E; border-color: #F15A2E; }
+  .item-body { flex: 1; min-width: 0; }
+  .item-desc { font-size: 13px; color: #1a1f2e; line-height: 1.4; margin-bottom: 5px; }
+  .item-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .assignee-tag { font-size: 10px; color: #6b7280; background: #f3f4f6; padding: 2px 7px; border-radius: 10px; }
+  .age-tag { font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 600; }
+  .age-fresh { background: #f0fdf4; color: #16a34a; }
+  .age-warn  { background: #fefce8; color: #ca8a04; }
+  .age-stale { background: #fff1f2; color: #e11d48; }
+  .fathom-link { font-size: 10px; color: #c4b5af; text-decoration: none; }
+  .fathom-link:hover { color: #F15A2E; }
+  #status-msg { background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 24px; text-align: center; color: #9ca3af; font-size: 13px; margin-bottom: 16px; }
+  #error-msg { background: #fff1f2; border: 1px solid #fecdd3; border-radius: 8px; padding: 14px; color: #be123c; font-size: 12px; margin-bottom: 16px; display: none; word-break: break-word; }
+  .empty-state { text-align: center; padding: 24px; color: #d1d5db; font-size: 12px; background: white; border-radius: 8px; border: 1px dashed #e5e7eb; }
+  .last-updated { font-size: 10px; color: #d1d5db; text-align: right; margin-top: 18px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Unresolved Action Items</h1>
+    <div class="subtitle">30 days of Fathom &middot; live on refresh</div>
+  </div>
+  <button class="refresh-btn" id="refreshBtn">&#8635; Refresh</button>
+</header>
+
+<div id="error-msg"></div>
+<div id="status-msg">Click Refresh to load your action items.</div>
+
+<div id="stats-row" class="stats-row" style="display:none">
+  <div class="stat-card"><div class="stat-number orange" id="stat-mine">0</div><div class="stat-label">Yours</div></div>
+  <div class="stat-card"><div class="stat-number" id="stat-team">0</div><div class="stat-label">Team</div></div>
+  <div class="stat-card"><div class="stat-number" id="stat-meetings">0</div><div class="stat-label">Meetings</div></div>
+</div>
+
+<div id="mine-section" style="display:none">
+  <div class="section-label mine">Your items</div>
+  <div id="mine-list"></div>
+</div>
+<div id="team-section" style="display:none">
+  <div class="section-label">Team items</div>
+  <div id="team-list"></div>
+</div>
+<div class="last-updated" id="last-updated"></div>
+
+<script>
+var MY_EMAILS = ['chrisjarvis@realizedworth.com', 'chrisjarvis@rw.institute'];
+var dismissed = {};
+
+// ── YAML parser ──────────────────────────────────────────────────────────────
+// Parses the specific YAML structure returned by the Fathom MCP tool.
+// Indentation contract:
+//   0:  items[N]:
+//   2:    - (meeting, first field after dash on same line)
+//   4:      meeting fields
+//   6:        - (action_item / calendar_invitee, first field after dash)
+//   8:          action_item fields
+//  10:            assignee fields
+
+function extractYamlText(result) {
+  if (!result) return '';
+  if (typeof result === 'string') {
+    // Might be raw YAML or JSON
+    if (result.trimLeft().startsWith('{')) {
+      try { result = JSON.parse(result); } catch(e) { return result; }
+    } else {
+      return result;
+    }
+  }
+  // MCP envelope: { content: [{ type: 'text', text: '...' }] }
+  if (result.content && Array.isArray(result.content)) {
+    for (var i = 0; i < result.content.length; i++) {
+      if (result.content[i].type === 'text') return result.content[i].text || '';
+    }
+  }
+  // Already parsed JSON with .items
+  if (result.items) return JSON.stringify(result); // handled separately
+  return '';
+}
+
+function stripQuotes(s) {
+  if (s === undefined || s === null) return null;
+  s = String(s).trim();
+  if (s === 'null' || s === '~') return null;
+  if (s === 'true') return true;
+  if (s === 'false') return false;
+  if ((s[0] === '"' && s[s.length-1] === '"') ||
+      (s[0] === "'" && s[s.length-1] === "'")) {
+    return s.slice(1, -1);
+  }
+  return s;
+}
+
+function getIndent(line) {
+  var m = line.match(/^(\s*)/);
+  return m ? m[1].length : 0;
+}
+
+// Split "key: rest" on first colon only
+function splitKV(s) {
+  var idx = s.indexOf(':');
+  if (idx === -1) return null;
+  return { key: s.slice(0, idx).trim(), val: stripQuotes(s.slice(idx + 1).trim()) };
+}
+
+function parseFathomYaml(text) {
+  var lines = text.split('\n');
+  var meetings = [];
+  var nextCursor = null;
+
+  var meeting = null;
+  var section = null;   // 'action_items' | 'other'
+  var ai = null;        // current action item
+  var inAssignee = false;
+
+  function commitMeeting() { if (meeting) { meetings.push(meeting); } }
+
+  for (var i = 0; i < lines.length; i++) {
+    var raw = lines[i];
+    // Skip blank
+    if (!raw.trim()) continue;
+
+    var indent = getIndent(raw);
+    var trimmed = raw.trim();
+
+    // Top-level cursor
+    if (indent === 0 && trimmed.startsWith('next_cursor:')) {
+      var cv = stripQuotes(trimmed.slice('next_cursor:'.length).trim());
+      if (cv && cv !== 'null') nextCursor = cv;
+      continue;
+    }
+    // Top-level items header
+    if (indent === 0) continue;
+
+    // ── Meeting entry (indent 2, starts with "- ") ──
+    if (indent === 2 && trimmed.startsWith('- ')) {
+      commitMeeting();
+      meeting = { title: '', url: '', recording_id: null, recording_start_time: null, created_at: null, action_items: [] };
+      section = null; ai = null; inAssignee = false;
+      var kv = splitKV(trimmed.slice(2));
+      if (kv && kv.key) meeting[kv.key] = kv.val;
+      continue;
+    }
+
+    if (!meeting) continue;
+
+    // ── Meeting field (indent 4) ──
+    if (indent === 4) {
+      inAssignee = false;
+      var kv = splitKV(trimmed);
+      if (!kv) continue;
+      if (kv.key === 'action_items') { section = 'action_items'; ai = null; }
+      else if (['calendar_invitees','recorded_by','crm_matches','share_url'].includes(kv.key)) { section = 'other'; ai = null; }
+      else if (section !== 'action_items') {
+        if (['title','url','created_at','recording_id','recording_start_time','recording_end_time','scheduled_start_time'].includes(kv.key)) {
+          meeting[kv.key] = kv.val;
+        }
+      }
+      continue;
+    }
+
+    // ── Action item entry (indent 6, "- ") inside action_items ──
+    if (indent === 6 && trimmed.startsWith('- ') && section === 'action_items') {
+      ai = { description: '', completed: false, recording_playback_url: null, assignee: { name: null, email: null } };
+      meeting.action_items.push(ai);
+      inAssignee = false;
+      var kv = splitKV(trimmed.slice(2));
+      if (kv && kv.key === 'description') ai.description = String(kv.val || '');
+      continue;
+    }
+
+    // ── Action item field (indent 8) ──
+    if (indent === 8 && section === 'action_items' && ai) {
+      if (trimmed === 'assignee:') { inAssignee = true; continue; }
+      inAssignee = false;
+      var kv = splitKV(trimmed);
+      if (!kv) continue;
+      if (kv.key === 'description') ai.description = String(kv.val || '');
+      else if (kv.key === 'completed') ai.completed = (kv.val === true || kv.val === 'true');
+      else if (kv.key === 'recording_playback_url') ai.recording_playback_url = kv.val;
+      continue;
+    }
+
+    // ── Assignee field (indent 10) ──
+    if (indent === 10 && inAssignee && ai) {
+      var kv = splitKV(trimmed);
+      if (kv && ai.assignee) ai.assignee[kv.key] = kv.val;
+      continue;
+    }
+  }
+  commitMeeting();
+  return { items: meetings, next_cursor: nextCursor };
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function daysSince(iso) {
+  return Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+}
+
+function fmtDate(iso) {
+  var d = new Date(iso);
+  var mo = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return mo[d.getMonth()] + ' ' + d.getDate();
+}
+
+function ageHtml(days) {
+  var cls = days <= 5 ? 'age-fresh' : days <= 14 ? 'age-warn' : 'age-stale';
+  return '<span class="age-tag ' + cls + '">' + days + 'd ago</span>';
+}
+
+function itemKey(mid, desc) { return String(mid) + '::' + String(desc).slice(0,50); }
+
+function toggleDone(key) {
+  dismissed[key] = !dismissed[key];
+  var item = document.querySelector('.ai-item[data-k="' + key.replace(/\\/g,'\\\\').replace(/"/g,'\\"') + '"]');
+  var btn  = document.querySelector('.check-btn[data-k="' + key.replace(/\\/g,'\\\\').replace(/"/g,'\\"') + '"]');
+  if (item) item.classList.toggle('done', !!dismissed[key]);
+  if (btn)  { btn.classList.toggle('done', !!dismissed[key]); btn.textContent = dismissed[key] ? '✓' : ''; }
+}
+
+function renderList(items, containerId) {
+  var el = document.getElementById(containerId);
+  if (!items.length) { el.innerHTML = '<div class="empty-state">Nothing found</div>'; return; }
+
+  var groups = {}, order = [];
+  items.forEach(function(item) {
+    var k = item.meetingId;
+    if (!groups[k]) { groups[k] = { title: item.meetingTitle, date: item.meetingDate, items: [] }; order.push(k); }
+    groups[k].items.push(item);
+  });
+
+  var html = '';
+  order.forEach(function(k) {
+    var g = groups[k];
+    var days = daysSince(g.date);
+    html += '<div class="meeting-group"><div class="meeting-label">' + esc(g.title) +
+            '<span class="meeting-date-tag">' + fmtDate(g.date) + '</span></div>';
+    g.items.forEach(function(item) {
+      var key = itemKey(item.meetingId, item.desc);
+      var done = !!dismissed[key];
+      var safeK = esc(key);
+      var assigneeHtml = item.assignee ? '<span class="assignee-tag">&rarr; ' + esc(item.assignee) + '</span>' : '';
+      var fathomHtml   = item.playbackUrl ? '<a class="fathom-link" href="' + esc(item.playbackUrl) + '" target="_blank">&#9654; Fathom</a>' : '';
+      html += '<div class="action-item ai-item' + (done ? ' done' : '') + '" data-k="' + safeK + '">' +
+              '<button class="check-btn' + (done ? ' done' : '') + '" data-k="' + safeK + '" onclick="toggleDone(this.dataset.k)">' + (done ? '✓' : '') + '</button>' +
+              '<div class="item-body"><div class="item-desc">' + esc(item.desc) + '</div>' +
+              '<div class="item-meta">' + assigneeHtml + ageHtml(days) + fathomHtml + '</div>' +
+              '</div></div>';
+    });
+    html += '</div>';
+  });
+  el.innerHTML = html;
+}
+
+// ── Load ─────────────────────────────────────────────────────────────────────
+
+function setStatus(msg) {
+  var el = document.getElementById('status-msg');
+  el.style.display = msg ? 'block' : 'none';
+  el.textContent = msg;
+}
+
+function showError(msg) {
+  var el = document.getElementById('error-msg');
+  el.style.display = 'block';
+  el.textContent = msg;
+}
+
+function clearError() {
+  var el = document.getElementById('error-msg');
+  el.style.display = 'none';
+  el.textContent = '';
+}
+
+async function loadData() {
+  var btn = document.getElementById('refreshBtn');
+  btn.disabled = true;
+  btn.textContent = 'Loading…';
+  clearError();
+  setStatus('Pulling meetings from Fathom…');
+  document.getElementById('stats-row').style.display = 'none';
+  document.getElementById('mine-section').style.display = 'none';
+  document.getElementById('team-section').style.display = 'none';
+
+  try {
+    var since = new Date(Date.now() - 30 * 86400000).toISOString();
+    var allMeetings = [];
+    var cursor = null;
+
+    for (var page = 0; page < 2; page++) {
+      var params = { created_after: since, include_action_items: true, per_page: 50 };
+      if (cursor) params.cursor = cursor;
+      if (page > 0) setStatus('Loading more meetings…');
+
+      var raw = await window.cowork.callMcpTool('mcp__fathom-organizer__list_meetings', params);
+      var yamlText = extractYamlText(raw);
+      var parsed = parseFathomYaml(yamlText);
+
+      if (parsed.items && parsed.items.length) allMeetings = allMeetings.concat(parsed.items);
+      cursor = parsed.next_cursor || null;
+      if (!cursor) break;
+    }
+
+    var myItems = [], teamItems = [], meetingIds = {};
+
+    allMeetings.forEach(function(m) {
+      if (!m.action_items || !m.action_items.length) return;
+      meetingIds[m.recording_id || m.title] = true;
+      m.action_items.forEach(function(ai) {
+        if (ai.completed) return;
+        var email = String((ai.assignee && ai.assignee.email) || '').toLowerCase();
+        var name  = (ai.assignee && ai.assignee.name) || null;
+        var isMe  = MY_EMAILS.indexOf(email) !== -1;
+        var item  = {
+          meetingId: String(m.recording_id || m.title),
+          meetingTitle: m.title || 'Untitled',
+          meetingDate:  m.recording_start_time || m.created_at || new Date().toISOString(),
+          desc: ai.description || '',
+          assignee: isMe ? null : name,
+          playbackUrl: ai.recording_playback_url || m.url || null
+        };
+        if (isMe) myItems.push(item); else teamItems.push(item);
+      });
+    });
+
+    document.getElementById('stat-mine').textContent = myItems.length;
+    document.getElementById('stat-team').textContent = teamItems.length;
+    document.getElementById('stat-meetings').textContent = Object.keys(meetingIds).length;
+    document.getElementById('stats-row').style.display = 'flex';
+
+    renderList(myItems,  'mine-list');
+    renderList(teamItems,'team-list');
+
+    if (myItems.length)  document.getElementById('mine-section').style.display = 'block';
+    if (teamItems.length)document.getElementById('team-section').style.display = 'block';
+
+    setStatus('');
+    var now = new Date();
+    document.getElementById('last-updated').textContent = 'Refreshed ' + fmtDate(now.toISOString()) +
+      ' at ' + now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+
+  } catch(err) {
+    setStatus('');
+    showError('Error: ' + (err.message || String(err)));
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '↻ Refresh';
+  }
+}
+
+document.getElementById('refreshBtn').addEventListener('click', loadData);
+</script>
+</body>
+</html>

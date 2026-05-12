@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<script type="application/json" id="cowork-artifact-meta">
+{
+  "name": "Team Capacity Tasks",
+  "schemaVersion": 1,
+  "description": "Live dashboard pulling from Smartsheet project plans. Shows all tasks due this week for Kristen, Megan, Kelly, Nichole, and Angela, color-coded by overdue/today/this week. Includes per-person summary cards, click-to-filter, and a follow-up section for overdue items. RWI branded.",
+  "mcpTools": [
+    "mcp__f9f49228-5b2a-45eb-8e57-c484745e79cb__browse_folder",
+    "mcp__f9f49228-5b2a-45eb-8e57-c484745e79cb__get_sheet_summary"
+  ],
+  "mcpServerNames": [
+    "Smartsheet",
+    "Smartsheet"
+  ]
+}
+</script>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RW Institute - Team Capacity & Tasks This Week</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap">
+  <style>
+    :root {
+      color-scheme: light;
+      --rwi-primary: #F15A2E;
+      --rwi-secondary: #89d1e3;
+      --rwi-tertiary: #ffb877;
+      --rwi-background: #0B1D32;
+      --rwi-surface: #0B1D32;
+      --rwi-surface-container: #0D253F;
+      --rwi-surface-container-high: #132D4A;
+      --rwi-surface-container-low: #0A1C31;
+      --rwi-surface-container-lowest: #071424;
+      --rwi-surface-bright: #2a3a50;
+      --rwi-text-primary: #ffffff;
+      --rwi-text-body: #d3e3ff;
+      --rwi-text-muted: #94a3b8;
+      --rwi-text-subtle: #64748b;
+      --rwi-text-faint: #475569;
+      --rwi-outline-variant: #25364c;
+      --rwi-border-subtle: rgba(255,255,255,0.05);
+      --rwi-border-accent: rgba(241,90,46,0.1);
+      --rwi-gradient-energy: linear-gradient(45deg, #F15A2E, #F59328);
+      --rwi-font-headline: 'Plus Jakarta Sans', sans-serif;
+      --rwi-font-body: 'Inter', sans-serif;
+      --rwi-glass-bg: rgba(19,45,74,0.4);
+      --rwi-glass-blur: blur(24px);
+      --rwi-glass-border: 1px solid rgba(241,90,46,0.1);
+      --rwi-constellation: radial-gradient(circle, rgba(241,90,46,0.08) 1.5px, transparent 1.5px);
+      --rwi-constellation-size: 48px 48px;
+      --rwi-radius-sm: 0.5rem;
+      --rwi-radius-md: 0.75rem;
+      --rwi-radius-lg: 1rem;
+      --rwi-radius-xl: 1.5rem;
+      --rwi-radius-pill: 9999px;
+
+      --color-kristen: #F15A2E;
+      --color-megan: #89d1e3;
+      --color-kelly: #ffb877;
+      --color-nichole: #a78bfa;
+      --color-angela: #6ee7b7;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--rwi-background);
+      color: var(--rwi-text-body);
+      font-family: var(--rwi-font-body);
+      font-weight: 300;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    h1, h2, h3, h4 {
+      font-family: var(--rwi-font-headline);
+      color: var(--rwi-text-primary);
+      line-height: 1.1;
+    }
+
+    /* Header */
+    .header {
+      padding: 1.25rem 2rem;
+      border-bottom: 1px solid var(--rwi-border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--rwi-surface-container-lowest);
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .logo-text { font-family: var(--rwi-font-headline); font-size: 1.25rem; line-height: 1; }
+    .logo-rw { font-weight: 800; color: #ffffff; }
+    .logo-inst { font-weight: 300; color: #cbd5e1; }
+    .header-divider {
+      width: 1px; height: 24px;
+      background: var(--rwi-text-subtle);
+      margin: 0 0.75rem;
+    }
+    .header-title {
+      font-family: var(--rwi-font-headline);
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: var(--rwi-text-muted);
+    }
+    .week-badge {
+      background: var(--rwi-gradient-energy);
+      color: #fff;
+      font-family: var(--rwi-font-headline);
+      font-weight: 700;
+      font-size: 0.75rem;
+      padding: 0.4rem 1rem;
+      border-radius: var(--rwi-radius-pill);
+      letter-spacing: 0.03em;
+    }
+
+    /* Main container */
+    .main {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    /* Page title area */
+    .page-title-area {
+      margin-bottom: 2rem;
+      background-image: var(--rwi-constellation);
+      background-size: var(--rwi-constellation-size);
+      padding: 2rem;
+      border-radius: var(--rwi-radius-xl);
+    }
+    .section-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.4em;
+      color: var(--rwi-primary);
+      font-weight: 700;
+      font-family: var(--rwi-font-headline);
+      display: block;
+      margin-bottom: 0.75rem;
+    }
+    .page-title {
+      font-size: clamp(1.5rem, 3vw, 2.25rem);
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+    }
+    .page-subtitle {
+      color: var(--rwi-text-muted);
+      font-size: 0.95rem;
+    }
+
+    /* Loading state */
+    .loading-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 6rem 2rem;
+      gap: 1.5rem;
+    }
+    .loading-spinner {
+      width: 48px; height: 48px;
+      border: 3px solid var(--rwi-surface-container-high);
+      border-top-color: var(--rwi-primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text {
+      font-family: var(--rwi-font-headline);
+      font-weight: 600;
+      color: var(--rwi-text-muted);
+      font-size: 0.95rem;
+    }
+    .loading-detail {
+      color: var(--rwi-text-subtle);
+      font-size: 0.85rem;
+      text-align: center;
+      max-width: 400px;
+    }
+
+    /* Error state */
+    .error-container {
+      background: rgba(241,90,46,0.1);
+      border: 1px solid rgba(241,90,46,0.3);
+      border-radius: var(--rwi-radius-lg);
+      padding: 2rem;
+      text-align: center;
+    }
+    .error-container h3 { color: var(--rwi-primary); margin-bottom: 0.5rem; }
+
+    /* Summary cards */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    @media (max-width: 900px) {
+      .summary-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 600px) {
+      .summary-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    .summary-card {
+      background: var(--rwi-glass-bg);
+      backdrop-filter: var(--rwi-glass-blur);
+      -webkit-backdrop-filter: var(--rwi-glass-blur);
+      border: var(--rwi-glass-border);
+      border-radius: var(--rwi-radius-xl);
+      padding: 1.25rem;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 200ms ease;
+    }
+    .summary-card:hover {
+      background: rgba(19,45,74,0.6);
+      transform: translateY(-2px);
+    }
+    .summary-card.active {
+      border-color: var(--card-color, var(--rwi-primary));
+      box-shadow: 0 0 20px rgba(241,90,46,0.15);
+    }
+    .summary-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: var(--card-color, var(--rwi-primary));
+      opacity: 0.8;
+    }
+    .card-name {
+      font-family: var(--rwi-font-headline);
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: var(--card-color, var(--rwi-text-primary));
+      margin-bottom: 0.5rem;
+    }
+    .card-count {
+      font-family: var(--rwi-font-headline);
+      font-weight: 800;
+      font-size: 2rem;
+      color: var(--rwi-text-primary);
+      line-height: 1;
+    }
+    .card-meta {
+      font-size: 0.75rem;
+      color: var(--rwi-text-muted);
+      margin-top: 0.25rem;
+    }
+    .card-breakdown {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .breakdown-chip {
+      font-size: 0.65rem;
+      font-family: var(--rwi-font-headline);
+      font-weight: 600;
+      padding: 0.15rem 0.5rem;
+      border-radius: var(--rwi-radius-pill);
+      white-space: nowrap;
+    }
+    .chip-overdue { background: rgba(241,90,46,0.2); color: #ff8a65; }
+    .chip-today { background: rgba(255,184,119,0.2); color: var(--rwi-tertiary); }
+    .chip-week { background: rgba(137,209,227,0.15); color: var(--rwi-secondary); }
+
+    /* Filter bar */
+    .filter-bar {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .filter-label {
+      font-family: var(--rwi-font-headline);
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--rwi-text-subtle);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-right: 0.25rem;
+    }
+    .filter-btn {
+      background: var(--rwi-surface-container);
+      color: var(--rwi-text-muted);
+      border: 1px solid var(--rwi-outline-variant);
+      border-radius: var(--rwi-radius-pill);
+      padding: 0.35rem 1rem;
+      font-family: var(--rwi-font-headline);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 200ms ease;
+    }
+    .filter-btn:hover {
+      border-color: var(--rwi-text-muted);
+      color: var(--rwi-text-primary);
+    }
+    .filter-btn.active {
+      background: var(--rwi-gradient-energy);
+      color: #fff;
+      border-color: transparent;
+    }
+    .filter-btn.active-person {
+      background: var(--btn-color, var(--rwi-primary));
+      color: #fff;
+      border-color: transparent;
+    }
+
+    /* Client sections */
+    .client-section {
+      margin-bottom: 1.5rem;
+      border-radius: var(--rwi-radius-lg);
+      overflow: hidden;
+    }
+    .client-header {
+      background: var(--rwi-surface-container-high);
+      padding: 0.75rem 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      border-bottom: 1px solid var(--rwi-outline-variant);
+    }
+    .client-name {
+      font-family: var(--rwi-font-headline);
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: var(--rwi-text-primary);
+    }
+    .client-task-count {
+      font-size: 0.7rem;
+      background: rgba(255,255,255,0.1);
+      color: var(--rwi-text-muted);
+      padding: 0.15rem 0.6rem;
+      border-radius: var(--rwi-radius-pill);
+      font-family: var(--rwi-font-headline);
+      font-weight: 600;
+    }
+
+    /* Task table */
+    .task-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    .task-table th {
+      background: var(--rwi-surface-container);
+      color: var(--rwi-text-muted);
+      font-family: var(--rwi-font-headline);
+      font-weight: 600;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      text-align: left;
+      padding: 0.6rem 1rem;
+      border-bottom: 1px solid var(--rwi-outline-variant);
+    }
+    .task-table td {
+      padding: 0.65rem 1rem;
+      border-bottom: 1px solid var(--rwi-border-subtle);
+      color: var(--rwi-text-body);
+      vertical-align: middle;
+    }
+    .task-table tr:hover td {
+      background: rgba(19,45,74,0.3);
+    }
+    .task-table tr.hidden { display: none; }
+
+    /* Assignee pills */
+    .assignee-pill {
+      display: inline-block;
+      border-radius: var(--rwi-radius-pill);
+      padding: 0.15rem 0.65rem;
+      font-size: 0.75rem;
+      font-family: var(--rwi-font-headline);
+      font-weight: 700;
+      white-space: nowrap;
+    }
+    .pill-kristen { background: rgba(241,90,46,0.15); color: #ff8a65; }
+    .pill-megan   { background: rgba(137,209,227,0.15); color: #89d1e3; }
+    .pill-kelly   { background: rgba(255,184,119,0.15); color: #ffb877; }
+    .pill-nichole  { background: rgba(167,139,250,0.15); color: #a78bfa; }
+    .pill-angela  { background: rgba(110,231,183,0.15); color: #6ee7b7; }
+
+    /* Status badges */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-size: 0.75rem;
+      font-family: var(--rwi-font-headline);
+      font-weight: 600;
+      padding: 0.2rem 0.65rem;
+      border-radius: var(--rwi-radius-pill);
+      white-space: nowrap;
+    }
+    .status-in-progress { background: rgba(137,209,227,0.15); color: var(--rwi-secondary); }
+    .status-not-started { background: rgba(255,184,119,0.12); color: var(--rwi-tertiary); }
+
+    /* Due date styling */
+    .due-date { font-size: 0.8rem; white-space: nowrap; font-weight: 400; }
+    .due-overdue { color: var(--rwi-primary); font-weight: 700; }
+    .due-today { color: var(--rwi-tertiary); font-weight: 700; }
+    .due-week { color: var(--rwi-text-body); }
+    .today-tag {
+      font-size: 0.6rem;
+      background: var(--rwi-gradient-energy);
+      color: #fff;
+      border-radius: 3px;
+      padding: 0.1rem 0.35rem;
+      margin-left: 0.3rem;
+      font-weight: 800;
+      font-family: var(--rwi-font-headline);
+      vertical-align: middle;
+    }
+    .overdue-tag {
+      font-size: 0.6rem;
+      background: rgba(241,90,46,0.25);
+      color: #ff8a65;
+      border-radius: 3px;
+      padding: 0.1rem 0.35rem;
+      margin-left: 0.3rem;
+      font-weight: 800;
+      font-family: var(--rwi-font-headline);
+      vertical-align: middle;
+    }
+
+    /* Follow-up section */
+    .followup-section {
+      background: var(--rwi-glass-bg);
+      backdrop-filter: var(--rwi-glass-blur);
+      border: 1px solid rgba(241,90,46,0.2);
+      border-radius: var(--rwi-radius-xl);
+      padding: 1.5rem;
+      margin-top: 2rem;
+    }
+    .followup-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .followup-header h3 {
+      font-size: 1rem;
+      color: var(--rwi-primary);
+    }
+    .followup-icon {
+      font-size: 1.2rem;
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding: 2rem;
+      color: var(--rwi-text-faint);
+      font-size: 0.75rem;
+      border-top: 1px solid var(--rwi-border-subtle);
+      margin-top: 2rem;
+    }
+
+    /* No data state */
+    .no-data {
+      text-align: center;
+      padding: 3rem;
+      color: var(--rwi-text-subtle);
+      font-family: var(--rwi-font-headline);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-left">
+      <span class="logo-text">
+        <span class="logo-rw">RW</span>
+        <span class="logo-inst"> Institute</span>
+      </span>
+      <div class="header-divider"></div>
+      <span class="header-title">Team Capacity & Tasks</span>
+    </div>
+    <div class="week-badge" id="weekBadge">Loading...</div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="page-title-area">
+      <span class="section-label">Team Dashboard</span>
+      <h1 class="page-title">This Week's Tasks</h1>
+      <p class="page-subtitle" id="pageSubtitle">Loading task data from Smartsheet...</p>
+    </div>
+
+    <!-- Loading -->
+    <div id="loadingState" class="loading-container">
+      <div class="loading-spinner"></div>
+      <div class="loading-text">Pulling data from Smartsheet</div>
+      <div class="loading-detail">Scanning active client project plans for tasks assigned to Kristen, Megan, Kelly, Nichole, and Angela...</div>
+    </div>
+
+    <!-- Error -->
+    <div id="errorState" style="display:none;"></div>
+
+    <!-- Dashboard content (hidden until loaded) -->
+    <div id="dashboardContent" style="display:none;">
+      <div class="summary-grid" id="summaryGrid"></div>
+      <div class="filter-bar" id="filterBar"></div>
+      <div id="clientSections"></div>
+      <div id="followUpSection"></div>
+    </div>
+  </div>
+
+  <div class="footer" id="footer">
+    RW Institute &middot; Confidential &middot; Loading...
+  </div>
+
+  <script>
+    // ── Configuration ──
+    const TEAM = {
+      'Kristen Guttilla': { short: 'Kristen', color: '#F15A2E', pill: 'pill-kristen' },
+      'Megan Strand':     { short: 'Megan',   color: '#89d1e3', pill: 'pill-megan' },
+      'Kelly Lynch':      { short: 'Kelly',    color: '#ffb877', pill: 'pill-kelly' },
+      'Nichole Giller':   { short: 'Nichole',  color: '#a78bfa', pill: 'pill-nichole' },
+      'Angela Parker':    { short: 'Angela',   color: '#6ee7b7', pill: 'pill-angela' }
+    };
+    const NAMES = Object.keys(TEAM);
+    const SHORT_NAMES = Object.values(TEAM).map(t => t.short);
+
+    const FOLDER_ID = 6380782966073220;
+    const SKIP_FOLDERS = [
+      '0 Active Project Plan Templates',
+      'Past Clients',
+      'Proposal Project Plans (Work not confirmed)'
+    ];
+
+    // 9 months ago cutoff for "active" sheets
+    const ACTIVE_CUTOFF = new Date();
+    ACTIVE_CUTOFF.setMonth(ACTIVE_CUTOFF.getMonth() - 9);
+
+    const TODAY = new Date();
+    TODAY.setHours(0,0,0,0);
+    const WEEK_END = new Date(TODAY);
+    WEEK_END.setDate(WEEK_END.getDate() + 7);
+
+    // ── Helpers ──
+    function esc(str) {
+      const d = document.createElement('div');
+      d.textContent = str || '';
+      return d.innerHTML;
+    }
+
+    function parseDate(isoStr) {
+      if (!isoStr) return null;
+      const clean = String(isoStr).replace(/^"|"$/g, '');
+      const d = new Date(clean);
+      return isNaN(d) ? null : d;
+    }
+
+    function dateOnly(d) {
+      return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    }
+
+    function formatDate(d) {
+      const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+      return months[d.getMonth()] + ' ' + d.getDate();
+    }
+
+    function weekRangeStr() {
+      const end = new Date(TODAY);
+      end.setDate(end.getDate() + 6);
+      const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+      if (TODAY.getMonth() === end.getMonth()) {
+        return months[TODAY.getMonth()] + ' ' + TODAY.getDate() + ' - ' + end.getDate() + ', ' + TODAY.getFullYear();
+      }
+      return months[TODAY.getMonth()] + ' ' + TODAY.getDate() + ' - ' + months[end.getMonth()] + ' ' + end.getDate() + ', ' + TODAY.getFullYear();
+    }
+
+    function getAssigneeInfo(fullName) {
+      for (const [key, val] of Object.entries(TEAM)) {
+        if (fullName && fullName.toLowerCase().includes(val.short.toLowerCase())) return val;
+      }
+      return null;
+    }
+
+    function isTeamMember(assignedTo) {
+      if (!assignedTo) return false;
+      const lower = assignedTo.toLowerCase();
+      if (lower === 'client' || lower === 'designer' || lower === 'nare') return false;
+      return NAMES.some(n => lower.includes(TEAM[n].short.toLowerCase()));
+    }
+
+    function isSectionHeader(row) {
+      const taskCell = row.cells.find(c => c.column_name === 'Task Name');
+      const assigneeCell = row.cells.find(c => c.column_name === 'Assigned To');
+      if (!taskCell) return true;
+      if (assigneeCell && assigneeCell.value) return false;
+      const name = taskCell.value || '';
+      return name === name.toUpperCase() && name.length > 3;
+    }
+
+    // ── Parse the text-based MCP response ──
+    function parseSheetResponse(text) {
+      const rows = [];
+      const lines = text.split('\n');
+      let currentRow = null;
+      let inRows = false;
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+
+        if (trimmed.startsWith('- row_id:')) {
+          if (currentRow) rows.push(currentRow);
+          currentRow = { cells: [] };
+          inRows = true;
+          continue;
+        }
+
+        if (inRows && currentRow && trimmed.match(/^[\w\s()]+\t/)) {
+          const parts = trimmed.split('\t');
+          if (parts.length >= 2) {
+            const colName = parts[0].trim();
+            let val = parts[1].trim().replace(/^"|"$/g, '');
+            currentRow.cells.push({ column_name: colName, value: val });
+          }
+        }
+
+        if (trimmed.startsWith('metadata:') || trimmed.startsWith('is_sampled:')) {
+          if (currentRow) rows.push(currentRow);
+          currentRow = null;
+          inRows = false;
+        }
+      }
+      if (currentRow) rows.push(currentRow);
+      return rows;
+    }
+
+    // ── Main data loading ──
+    async function loadData() {
+      try {
+        // Step 1: Browse client workplans folder for sub-folders
+        const folderResult = await window.cowork.callMcpTool(
+          'mcp__f9f49228-5b2a-45eb-8e57-c484745e79cb__browse_folder',
+          { folder_id: FOLDER_ID, asset_types: ['folders'] }
+        );
+
+        const folderText = typeof folderResult === 'string' ? folderResult : (folderResult.result || JSON.stringify(folderResult));
+        const folderLines = folderText.split('\n');
+        const clientFolders = [];
+
+        for (const line of folderLines) {
+          const match = line.match(/^\s*(\d+)\t(.+?)\t/);
+          if (match) {
+            const id = parseInt(match[1]);
+            const name = match[2].trim();
+            if (!SKIP_FOLDERS.includes(name) && id > 0) {
+              clientFolders.push({ id, name });
+            }
+          }
+        }
+
+        updateLoading('Found ' + clientFolders.length + ' client folders. Scanning for active sheets...');
+
+        // Step 2: Browse each client folder for sheets
+        const sheetPromises = clientFolders.map(async (folder) => {
+          try {
+            const sheetResult = await window.cowork.callMcpTool(
+              'mcp__f9f49228-5b2a-45eb-8e57-c484745e79cb__browse_folder',
+              { folder_id: folder.id, asset_types: ['sheets'] }
+            );
+            const sheetText = typeof sheetResult === 'string' ? sheetResult : (sheetResult.result || JSON.stringify(sheetResult));
+            const sheets = [];
+            for (const line of sheetText.split('\n')) {
+              const m = line.match(/^\s*(\d+)\t(.+?)\t.*?"(\d{4}-\d{2}-\d{2}T[^"]+)"[^"]*"(\d{4}-\d{2}-\d{2}T[^"]+)"/);
+              if (m) {
+                const sheetId = parseInt(m[1]);
+                const sheetName = m[2].trim();
+                const modifiedAt = new Date(m[4]);
+                if (modifiedAt >= ACTIVE_CUTOFF) {
+                  sheets.push({ id: sheetId, name: sheetName, client: folder.name.replace(' Project Plans', '').replace(' Project Plan', '') });
+                }
+              }
+            }
+            return sheets;
+          } catch (e) {
+            return [];
+          }
+        });
+
+        const allSheetArrays = await Promise.all(sheetPromises);
+        const allSheets = allSheetArrays.flat();
+
+        updateLoading('Found ' + allSheets.length + ' active sheets. Pulling task data...');
+
+        // Step 3: Get task data from each sheet
+        const taskPromises = allSheets.map(async (sheet) => {
+          try {
+            const result = await window.cowork.callMcpTool(
+              'mcp__f9f49228-5b2a-45eb-8e57-c484745e79cb__get_sheet_summary',
+              {
+                sheet_id: sheet.id,
+                filters: [{ column_name: 'Status', column_value: 'Complete', operator: 'NOT_EQUAL' }],
+                columns: ['Task Name', 'Finish (Planned)', 'Assigned To', 'Status'],
+                sorting: [{ column_name: 'Finish (Planned)', direction: 'ASCENDING' }]
+              }
+            );
+            const text = typeof result === 'string' ? result : (result.result || JSON.stringify(result));
+            const rows = parseSheetResponse(text);
+            return { client: sheet.client, rows };
+          } catch (e) {
+            return { client: sheet.client, rows: [] };
+          }
+        });
+
+        const allResults = await Promise.all(taskPromises);
+
+        // Step 4: Filter and categorize
+        const thisWeekTasks = []; // { client, assignee, assigneeShort, task, dueDate, status, category }
+        const overdueTasks = [];
+
+        for (const { client, rows } of allResults) {
+          for (const row of rows) {
+            if (isSectionHeader(row)) continue;
+
+            const assigneeCell = row.cells.find(c => c.column_name === 'Assigned To');
+            const assignedTo = assigneeCell ? assigneeCell.value : null;
+            if (!isTeamMember(assignedTo)) continue;
+
+            const taskCell = row.cells.find(c => c.column_name === 'Task Name');
+            const dateCell = row.cells.find(c => c.column_name === 'Finish (Planned)');
+            const statusCell = row.cells.find(c => c.column_name === 'Status');
+
+            const taskName = taskCell ? taskCell.value : '(unnamed)';
+            const dueDate = dateCell ? parseDate(dateCell.value) : null;
+            const status = statusCell ? statusCell.value : 'Not Started';
+            const info = getAssigneeInfo(assignedTo);
+            if (!info || !dueDate) continue;
+
+            const dueDateOnly = dateOnly(dueDate);
+
+            if (dueDateOnly < TODAY) {
+              // Overdue
+              overdueTasks.push({ client, assignee: assignedTo, assigneeShort: info.short, task: taskName, dueDate: dueDateOnly, status, info });
+            } else if (dueDateOnly <= WEEK_END) {
+              // This week
+              let category = 'week';
+              if (dueDateOnly.getTime() === TODAY.getTime()) category = 'today';
+              thisWeekTasks.push({ client, assignee: assignedTo, assigneeShort: info.short, task: taskName, dueDate: dueDateOnly, status, category, info });
+            }
+          }
+        }
+
+        // Sort: today first, then by date
+        thisWeekTasks.sort((a, b) => {
+          if (a.category === 'today' && b.category !== 'today') return -1;
+          if (b.category === 'today' && a.category !== 'today') return 1;
+          return a.dueDate - b.dueDate;
+        });
+
+        overdueTasks.sort((a, b) => a.dueDate - b.dueDate);
+
+        renderDashboard(thisWeekTasks, overdueTasks);
+
+      } catch (err) {
+        showError('Failed to load data from Smartsheet: ' + (err.message || err));
+      }
+    }
+
+    function updateLoading(msg) {
+      const el = document.querySelector('.loading-detail');
+      if (el) el.textContent = msg;
+    }
+
+    function showError(msg) {
+      document.getElementById('loadingState').style.display = 'none';
+      const el = document.getElementById('errorState');
+      el.style.display = 'block';
+      el.innerHTML = '<div class="error-container"><h3>Data Load Error</h3><p style="color:var(--rwi-text-muted);font-size:0.9rem;">' + esc(msg) + '</p></div>';
+    }
+
+    // ── Rendering ──
+    function renderDashboard(tasks, overdue) {
+      document.getElementById('loadingState').style.display = 'none';
+      document.getElementById('dashboardContent').style.display = 'block';
+
+      const range = weekRangeStr();
+      document.getElementById('weekBadge').textContent = range;
+      document.getElementById('pageSubtitle').textContent =
+        tasks.length + ' tasks this week across ' +
+        new Set(tasks.map(t => t.client)).size + ' clients' +
+        (overdue.length > 0 ? ' | ' + overdue.length + ' overdue' : '');
+
+      const genDate = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+      document.getElementById('footer').textContent = 'RW Institute · Confidential · Generated ' + genDate;
+
+      // Summary cards
+      const grid = document.getElementById('summaryGrid');
+      grid.innerHTML = '';
+
+      for (const name of NAMES) {
+        const info = TEAM[name];
+        const personTasks = tasks.filter(t => t.assigneeShort === info.short);
+        const personOverdue = overdue.filter(t => t.assigneeShort === info.short);
+        const todayCount = personTasks.filter(t => t.category === 'today').length;
+        const weekCount = personTasks.filter(t => t.category === 'week').length;
+        const overdueCount = personOverdue.length;
+        const totalCount = personTasks.length;
+        const clientCount = new Set(personTasks.map(t => t.client)).size;
+
+        const card = document.createElement('div');
+        card.className = 'summary-card';
+        card.style.setProperty('--card-color', info.color);
+        card.dataset.person = info.short;
+        card.onclick = () => togglePersonFilter(info.short, card);
+
+        card.innerHTML =
+          '<div class="card-name">' + esc(info.short) + '</div>' +
+          '<div class="card-count">' + totalCount + '</div>' +
+          '<div class="card-meta">' + (totalCount === 1 ? 'task' : 'tasks') + ' · ' + clientCount + ' ' + (clientCount === 1 ? 'client' : 'clients') + '</div>' +
+          '<div class="card-breakdown">' +
+            (overdueCount > 0 ? '<span class="breakdown-chip chip-overdue">' + overdueCount + ' overdue</span>' : '') +
+            (todayCount > 0 ? '<span class="breakdown-chip chip-today">' + todayCount + ' today</span>' : '') +
+            (weekCount > 0 ? '<span class="breakdown-chip chip-week">' + weekCount + ' this week</span>' : '') +
+          '</div>';
+        grid.appendChild(card);
+      }
+
+      // Filter bar
+      const bar = document.getElementById('filterBar');
+      bar.innerHTML = '<span class="filter-label">Filter:</span>';
+
+      const allBtn = document.createElement('button');
+      allBtn.className = 'filter-btn active';
+      allBtn.textContent = 'All';
+      allBtn.onclick = () => setFilter('all', allBtn);
+      bar.appendChild(allBtn);
+
+      for (const name of NAMES) {
+        const info = TEAM[name];
+        const btn = document.createElement('button');
+        btn.className = 'filter-btn';
+        btn.textContent = info.short;
+        btn.style.setProperty('--btn-color', info.color);
+        btn.dataset.person = info.short;
+        btn.onclick = () => setFilter(info.short, btn);
+        bar.appendChild(btn);
+      }
+
+      // Client sections
+      const container = document.getElementById('clientSections');
+      container.innerHTML = '';
+
+      const byClient = {};
+      for (const t of tasks) {
+        if (!byClient[t.client]) byClient[t.client] = [];
+        byClient[t.client].push(t);
+      }
+
+      const sortedClients = Object.keys(byClient).sort();
+      if (sortedClients.length === 0) {
+        container.innerHTML = '<div class="no-data">No tasks due this week for the team.</div>';
+      }
+
+      for (const client of sortedClients) {
+        const clientTasks = byClient[client];
+        const section = document.createElement('div');
+        section.className = 'client-section';
+
+        let rows = '';
+        for (const t of clientTasks) {
+          const dueCls = t.category === 'today' ? 'due-today' : 'due-week';
+          const dateStr = formatDate(t.dueDate);
+          const tag = t.category === 'today' ? '<span class="today-tag">TODAY</span>' : '';
+          const statusCls = (t.status === 'In Progress') ? 'status-in-progress' : 'status-not-started';
+          const statusDot = (t.status === 'In Progress') ? '●' : '○';
+
+          rows += '<tr data-assignee="' + esc(t.assigneeShort) + '">' +
+            '<td><span class="assignee-pill ' + t.info.pill + '">' + esc(t.assigneeShort) + '</span></td>' +
+            '<td>' + esc(t.task) + '</td>' +
+            '<td><span class="due-date ' + dueCls + '">' + dateStr + tag + '</span></td>' +
+            '<td><span class="status-badge ' + statusCls + '">' + statusDot + ' ' + esc(t.status || 'Not Started') + '</span></td>' +
+          '</tr>';
+        }
+
+        section.innerHTML =
+          '<div class="client-header">' +
+            '<span class="client-name">' + esc(client) + '</span>' +
+            '<span class="client-task-count">' + clientTasks.length + ' task' + (clientTasks.length !== 1 ? 's' : '') + '</span>' +
+          '</div>' +
+          '<table class="task-table"><thead><tr>' +
+            '<th style="width:110px">Assignee</th><th>Task</th><th style="width:130px">Due</th><th style="width:140px">Status</th>' +
+          '</tr></thead><tbody>' + rows + '</tbody></table>';
+
+        container.appendChild(section);
+      }
+
+      // Follow-up / overdue section
+      if (overdue.length > 0) {
+        const fup = document.getElementById('followUpSection');
+        let overdueRows = '';
+        for (const t of overdue) {
+          const statusCls = (t.status === 'In Progress') ? 'status-in-progress' : 'status-not-started';
+          const statusDot = (t.status === 'In Progress') ? '●' : '○';
+          overdueRows += '<tr data-assignee="' + esc(t.assigneeShort) + '">' +
+            '<td><strong style="color:var(--rwi-text-primary);">' + esc(t.client) + '</strong></td>' +
+            '<td><span class="assignee-pill ' + t.info.pill + '">' + esc(t.assigneeShort) + '</span></td>' +
+            '<td>' + esc(t.task) + '</td>' +
+            '<td><span class="due-date due-overdue">' + formatDate(t.dueDate) + '<span class="overdue-tag">OVERDUE</span></span></td>' +
+            '<td><span class="status-badge ' + statusCls + '">' + statusDot + ' ' + esc(t.status || 'Not Started') + '</span></td>' +
+          '</tr>';
+        }
+
+        fup.innerHTML =
+          '<div class="followup-section">' +
+            '<div class="followup-header">' +
+              '<span class="followup-icon">⚡</span>' +
+              '<h3>Follow-Up Needed: ' + overdue.length + ' Overdue Item' + (overdue.length !== 1 ? 's' : '') + '</h3>' +
+            '</div>' +
+            '<table class="task-table"><thead><tr>' +
+              '<th style="width:120px">Client</th><th style="width:110px">Assignee</th><th>Task</th><th style="width:130px">Was Due</th><th style="width:140px">Status</th>' +
+            '</tr></thead><tbody>' + overdueRows + '</tbody></table>' +
+          '</div>';
+      }
+    }
+
+    // ── Filtering ──
+    let activeFilter = 'all';
+
+    function setFilter(value, btn) {
+      activeFilter = value;
+      document.querySelectorAll('.filter-btn').forEach(b => {
+        b.classList.remove('active', 'active-person');
+      });
+      if (value === 'all') {
+        btn.classList.add('active');
+      } else {
+        btn.classList.add('active-person');
+      }
+
+      // Update summary cards
+      document.querySelectorAll('.summary-card').forEach(c => {
+        c.classList.toggle('active', value !== 'all' && c.dataset.person === value);
+      });
+
+      // Filter table rows
+      document.querySelectorAll('.task-table tbody tr').forEach(row => {
+        if (value === 'all') {
+          row.classList.remove('hidden');
+        } else {
+          row.classList.toggle('hidden', row.dataset.assignee !== value);
+        }
+      });
+
+      // Hide empty client sections
+      document.querySelectorAll('.client-section').forEach(section => {
+        const visible = section.querySelectorAll('tbody tr:not(.hidden)');
+        section.style.display = visible.length === 0 ? 'none' : '';
+      });
+    }
+
+    function togglePersonFilter(name, card) {
+      const btn = document.querySelector('.filter-btn[data-person="' + name + '"]');
+      if (activeFilter === name) {
+        const allBtn = document.querySelector('.filter-btn:not([data-person])');
+        setFilter('all', allBtn);
+      } else if (btn) {
+        setFilter(name, btn);
+      }
+    }
+
+    // ── Init ──
+    loadData();
+  </script>
+</body>
+</html>

@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brand Skill Smoke Test | RW Institute</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --rwi-primary: #F15A2E;
+    --rwi-secondary: #89d1e3;
+    --rwi-tertiary: #ffb877;
+    --rwi-background: #0B1D32;
+    --rwi-surface-container-lowest: #071424;
+    --rwi-surface-container-low: #0A1C31;
+    --rwi-surface: #0B1D32;
+    --rwi-surface-container: #0D253F;
+    --rwi-surface-container-high: #132D4A;
+    --rwi-surface-bright: #2a3a50;
+    --rwi-text-primary: #ffffff;
+    --rwi-text-body: #d3e3ff;
+    --rwi-text-muted: #94a3b8;
+    --rwi-text-subtle: #64748b;
+    --rwi-glass-bg: rgba(19, 45, 74, 0.4);
+    --rwi-glass-border: 1px solid rgba(241, 90, 46, 0.1);
+    --rwi-gradient-energy: linear-gradient(45deg, #F15A2E, #F59328);
+    --rwi-gradient-hero-text: linear-gradient(90deg, #F15A2E 0%, #E8734A 25%, #C49A7A 45%, #8AADCC 65%, #5BA8D4 85%, #4AABE0 100%);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body { min-height: 100%; }
+
+  body {
+    background: #0B1D32;
+    background: var(--rwi-background, #0B1D32);
+    color: var(--rwi-text-body);
+    font-family: 'Inter', sans-serif;
+    font-weight: 300;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem 3rem;
+  }
+
+  /* ---------------- Hero ---------------- */
+  .hero {
+    position: relative;
+    border-radius: 1.5rem;
+    overflow: hidden;
+    padding: 2rem 2.5rem 4rem;
+    background: linear-gradient(180deg, #0B1D32 0%, #081629 100%);
+    border: 1px solid rgba(241, 90, 46, 0.12);
+  }
+
+  .hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle, rgba(241, 90, 46, 0.08) 1.5px, transparent 1.5px);
+    background-size: 48px 48px;
+    opacity: 1;
+    pointer-events: none;
+  }
+
+  .hero::after {
+    content: "";
+    position: absolute;
+    top: -120px;
+    right: -120px;
+    width: 380px;
+    height: 380px;
+    background: radial-gradient(circle, rgba(241, 90, 46, 0.18) 0%, rgba(241, 90, 46, 0) 70%);
+    pointer-events: none;
+  }
+
+  .hero-inner { position: relative; z-index: 1; }
+
+  .lockup {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    text-decoration: none;
+  }
+
+  .lockup img {
+    display: block;
+    width: 32px;
+    height: 32px;
+  }
+
+  .lockup-text {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+
+  .lockup-text .rw { font-weight: 800; color: #ffffff; }
+  .lockup-text .institute { font-weight: 300; color: #cbd5e1; }
+
+  .hero-label {
+    display: inline-block;
+    margin-top: 4rem;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4em;
+    color: var(--rwi-primary);
+  }
+
+  .hero-headline {
+    margin-top: 1rem;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 800;
+    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: var(--rwi-text-primary);
+    max-width: 18ch;
+  }
+
+  .hero-headline .gradient-word {
+    background: var(--rwi-gradient-hero-text);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    display: inline-block;
+  }
+
+  .hero-sub {
+    margin-top: 1.25rem;
+    max-width: 60ch;
+    color: var(--rwi-text-body);
+    font-size: 1.0625rem;
+    font-weight: 300;
+  }
+
+  /* ---------------- Card ---------------- */
+  .card-section { margin-top: 3rem; }
+
+  .card {
+    background: var(--rwi-glass-bg);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: var(--rwi-glass-border);
+    border-radius: 1rem;
+    padding: 2rem 2.25rem;
+  }
+
+  .card-label {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4em;
+    color: var(--rwi-primary);
+  }
+
+  .card-title {
+    margin-top: 0.75rem;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-weight: 700;
+    font-size: 1.5rem;
+    letter-spacing: -0.01em;
+    color: var(--rwi-text-primary);
+  }
+
+  .card-body {
+    margin-top: 1rem;
+    color: var(--rwi-text-body);
+    font-size: 1rem;
+    font-weight: 300;
+  }
+
+  .card-body + .card-body { margin-top: 0.75rem; }
+
+  .check-list {
+    margin-top: 1.5rem;
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .check-row {
+    display: flex;
+    align-items: baseline;
+    gap: 0.625rem;
+    font-size: 0.9375rem;
+    color: var(--rwi-text-body);
+  }
+
+  .check-row .dot {
+    flex: none;
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    background: var(--rwi-primary);
+    transform: translateY(-2px);
+  }
+
+  /* ---------------- Footer ---------------- */
+  footer {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .footer-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .footer-lockup {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .footer-lockup img { width: 24px; height: 24px; display: block; }
+
+  .footer-lockup-text {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.95rem;
+    line-height: 1;
+  }
+
+  .footer-lockup-text .rw { font-weight: 800; color: #ffffff; }
+  .footer-lockup-text .institute { font-weight: 300; color: #cbd5e1; }
+
+  .footer-meta {
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--rwi-text-muted);
+  }
+
+  .footer-bottom {
+    margin-top: 1.25rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--rwi-text-subtle);
+  }
+
+  @media (max-width: 640px) {
+    .hero { padding: 1.5rem 1.25rem 3rem; }
+    .card { padding: 1.5rem 1.25rem; }
+  }
+</style>
+</head>
+<body>
+  <div class="page">
+
+    <section class="hero">
+      <div class="hero-inner">
+        <a href="#" class="lockup" aria-label="RW Institute">
+          <img src="rwi-icon-orange.png" width="32" height="32" alt="RW Institute">
+          <span class="lockup-text">
+            <span class="rw">RW</span><span class="institute"> Institute</span>
+          </span>
+        </a>
+
+        <span class="hero-label">Brand Protocol v1.2.0</span>
+        <h1 class="hero-headline">Brand Skill<br><span class="gradient-word">Smoke Test</span></h1>
+        <p class="hero-sub">A single-page verification of the RW Institute identity system rendered end to end: dark surface, constellation texture, Plus Jakarta Sans display type, glass-panel content, and the icon-plus-wordmark lockup in its correct lockup ratio.</p>
+      </div>
+    </section>
+
+    <section class="card-section">
+      <article class="card">
+        <span class="card-label">About this page</span>
+        <h2 class="card-title">What you're looking at</h2>
+        <p class="card-body">This file exists to confirm the rwi-brand-apply skill produces a deliverable that conforms to RW Institute Brand Protocol v1.2.0. If the page reads as on-brand at a glance — dark navy ground, orange icon lockup top-left, glass card with an orange overline, no light-mode bleed-through — the skill is wired up correctly.</p>
+        <p class="card-body">Use it as a reference when starting a new RWI HTML deliverable, or as a quick visual check after editing brand tokens.</p>
+
+        <div class="check-list" aria-label="Brand checklist">
+          <div class="check-row"><span class="dot" aria-hidden="true"></span><span>Background <code style="font-family:'Inter',sans-serif;font-weight:500;color:#fff;">#0B1D32</code> applied to body and present as a literal hex.</span></div>
+          <div class="check-row"><span class="dot" aria-hidden="true"></span><span>Plus Jakarta Sans for headings, Inter (light 300) for body.</span></div>
+          <div class="check-row"><span class="dot" aria-hidden="true"></span><span>Icon PNG copied next to the HTML and rendered with the typeset wordmark.</span></div>
+          <div class="check-row"><span class="dot" aria-hidden="true"></span><span>Glass card uses semi-transparent fill, blur, and an orange-tint border.</span></div>
+          <div class="check-row"><span class="dot" aria-hidden="true"></span><span>Section labels in 10px, 0.4em tracking, primary orange.</span></div>
+          <div class="check-row"><span class="dot" aria-hidden="true"></span><span>Constellation dots scoped to the hero, not tiled across content.</span></div>
+        </div>
+      </article>
+    </section>
+
+    <footer>
+      <div class="footer-row">
+        <a href="#" class="footer-lockup" aria-label="RW Institute">
+          <img src="rwi-icon-orange.png" width="24" height="24" alt="RW Institute">
+          <span class="footer-lockup-text">
+            <span class="rw">RW</span><span class="institute"> Institute</span>
+          </span>
+        </a>
+        <div class="footer-meta">Brand Protocol &middot; v1.2.0 &middot; Verification Page</div>
+      </div>
+      <div class="footer-bottom">&copy; 2026 RW Institute. Generated by the rwi-brand-apply skill.</div>
+    </footer>
+
+  </div>
+</body>
+</html>

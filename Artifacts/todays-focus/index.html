@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<script type="application/json" id="cowork-artifact-meta">
+{
+  "name": "Todays Focus",
+  "schemaVersion": 1,
+  "description": "Live daily attention dashboard pulling today's Outlook calendar, open Fathom action items assigned to Chris, and recent inbox emails. Refreshes on reload.",
+  "mcpTools": [
+    "mcp__073169e8-5de7-4b0f-a2a4-0f3fe7ddf0c3__outlook_calendar_search",
+    "mcp__073169e8-5de7-4b0f-a2a4-0f3fe7ddf0c3__outlook_email_search",
+    "mcp__fathom-organizer__list_meetings"
+  ],
+  "mcpServerNames": [
+    "Microsoft 365",
+    "Microsoft 365",
+    "fathom-organizer"
+  ]
+}
+</script>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Today's Focus</title>
+<style>
+:root { color-scheme: light; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #F3F4F6;
+  color: #111827;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  padding: 16px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.page-header { margin-bottom: 18px; }
+
+h1 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #0A3454;
+}
+
+.date-sub {
+  font-size: 12px;
+  color: #6B7280;
+  margin-top: 2px;
+}
+
+.section {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #6B7280;
+}
+
+.badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: 20px;
+}
+
+.badge-cal     { background: #DBEAFE; color: #1D4ED8; }
+.badge-actions { background: #FEE2E2; color: #B91C1C; }
+.badge-email   { background: #D1FAE5; color: #065F46; }
+
+.item {
+  padding: 9px 11px;
+  border-radius: 8px;
+  background: #F9FAFB;
+  margin-bottom: 6px;
+  border: 1px solid #F3F4F6;
+  transition: background 0.1s, border-color 0.1s;
+}
+.item:last-child { margin-bottom: 0; }
+.item:hover { background: #F0F9FF; border-color: #BAE6FD; }
+
+.item-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: #111827;
+  text-decoration: none;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+a.item-title:hover { color: #F05927; }
+
+.item-meta {
+  font-size: 11px;
+  color: #9CA3AF;
+  margin-top: 4px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+.time-chip {
+  font-size: 11px;
+  font-weight: 600;
+  color: #1D4ED8;
+  background: #EFF6FF;
+  padding: 1px 7px;
+  border-radius: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.chip {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.chip-tentative { background: #FEF9C3; color: #92400E; }
+.chip-confirmed { background: #D1FAE5; color: #065F46; }
+.chip-allday    { background: #E0E7FF; color: #3730A3; }
+
+.dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+.dot-orange { background: #F05927; }
+
+.source-link {
+  color: #9CA3AF;
+  text-decoration: none;
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.source-link:hover { color: #F05927; }
+
+.meta-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.loading, .empty {
+  text-align: center;
+  color: #9CA3AF;
+  font-size: 13px;
+  padding: 18px 0;
+}
+
+.error-msg {
+  font-size: 12px;
+  color: #DC2626;
+  padding: 8px;
+  text-align: center;
+}
+
+.last-updated {
+  text-align: center;
+  font-size: 11px;
+  color: #D1D5DB;
+  margin-top: 4px;
+  padding-bottom: 8px;
+}
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Today's Focus</h1>
+  <div class="date-sub" id="date-sub">—</div>
+</div>
+
+<div class="section">
+  <div class="section-header">
+    <span class="section-title">📅 Today's Schedule</span>
+    <span class="badge badge-cal" id="cal-badge">…</span>
+  </div>
+  <div id="cal-body" class="loading">Loading…</div>
+</div>
+
+<div class="section">
+  <div class="section-header">
+    <span class="section-title">✅ Open Action Items</span>
+    <span class="badge badge-actions" id="actions-badge">…</span>
+  </div>
+  <div id="actions-body" class="loading">Loading…</div>
+</div>
+
+<div class="section">
+  <div class="section-header">
+    <span class="section-title">✉️ Recent Inbox</span>
+    <span class="badge badge-email" id="email-badge">…</span>
+  </div>
+  <div id="email-body" class="loading">Loading…</div>
+</div>
+
+<div class="last-updated" id="last-updated"></div>
+
+<script>
+const CAL_TOOL    = 'mcp__073169e8-5de7-4b0f-a2a4-0f3fe7ddf0c3__outlook_calendar_search';
+const EMAIL_TOOL  = 'mcp__073169e8-5de7-4b0f-a2a4-0f3fe7ddf0c3__outlook_email_search';
+const FATHOM_TOOL = 'mcp__fathom-organizer__list_meetings';
+
+const CHRIS_EMAILS = ['chrisjarvis@realizedworth.com', 'chrisjarvis@rw.institute'];
+const CHRIS_NAMES  = ['chris jarvis', 'christopher jarvis'];
+
+function setDateDisplay() {
+  document.getElementById('date-sub').textContent =
+    new Date().toLocaleDateString(undefined, { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+}
+
+// callMcpTool returns {content:[{type,text},...], structuredContent, isError}
+function extractItems(result) {
+  if (!result || result.isError) return [];
+  const arr = result.content || (result.structuredContent && result.structuredContent.content) || [];
+  return arr
+    .filter(c => c && c.type === 'text' && c.text)
+    .map(c => { try { return JSON.parse(c.text); } catch(e) { return null; } })
+    .filter(Boolean);
+}
+
+function fmtTime(iso) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleTimeString(undefined, { hour:'numeric', minute:'2-digit', hour12:true });
+}
+
+function fmtDate(iso) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleDateString(undefined, { month:'short', day:'numeric' });
+}
+
+function trunc(s, n) {
+  if (!s) return '';
+  return s.length > n ? s.slice(0, n) + '…' : s;
+}
+
+// ── CALENDAR ──────────────────────────────────────────
+async function loadCalendar() {
+  try {
+    const result = await window.cowork.callMcpTool(CAL_TOOL, {
+      query: '*',
+      afterDateTime: 'today',
+      beforeDateTime: 'end of today',
+      limit: 20
+    });
+
+    const events = extractItems(result)
+      .filter(e => e && e.subject && !e.isCancelled)
+      .sort((a, b) => new Date(a.start) - new Date(b.start));
+
+    document.getElementById('cal-badge').textContent = events.length;
+
+    if (!events.length) {
+      document.getElementById('cal-body').innerHTML = '<div class="empty">No events today</div>';
+      return;
+    }
+
+    document.getElementById('cal-body').innerHTML = events.map(ev => {
+      const timeChip = ev.isAllDay
+        ? '<span class="chip chip-allday">All day</span>'
+        : `<span class="time-chip">${fmtTime(ev.start)} – ${fmtTime(ev.end)}</span>`;
+      const statusChip = ev.showAs === 'tentative'
+        ? '<span class="chip chip-tentative">Tentative</span>'
+        : '<span class="chip chip-confirmed">Confirmed</span>';
+      const loc = ev.location ? `<span class="meta-text">· ${trunc(ev.location, 38)}</span>` : '';
+      return `
+        <div class="item">
+          <a class="item-title" href="${ev.webLink || '#'}" target="_blank">${ev.subject}</a>
+          <div class="item-meta">${timeChip}${statusChip}${loc}</div>
+        </div>`;
+    }).join('');
+
+  } catch(e) {
+    document.getElementById('cal-badge').textContent = '!';
+    document.getElementById('cal-body').innerHTML = `<div class="error-msg">${e.message || 'Failed to load calendar'}</div>`;
+  }
+}
+
+// ── ACTION ITEMS (Fathom) ─────────────────────────────
+async function loadActions() {
+  try {
+    const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+    const result = await window.cowork.callMcpTool(FATHOM_TOOL, {
+      created_after: weekAgo,
+      per_page: 25,
+      include_action_items: true
+    });
+
+    const parsed = extractItems(result);
+    let meetings = [];
+    for (const item of parsed) {
+      if (item && item.items) meetings = meetings.concat(item.items);
+      else if (item && item.title) meetings.push(item);
+    }
+
+    const myActions = [];
+    for (const mtg of meetings) {
+      for (const ai of (mtg.action_items || [])) {
+        if (ai.completed) continue;
+        const em   = (ai.assignee && ai.assignee.email ? ai.assignee.email : '').toLowerCase();
+        const name = (ai.assignee && ai.assignee.name  ? ai.assignee.name  : '').toLowerCase();
+        const isMe = CHRIS_EMAILS.some(e => em === e) || CHRIS_NAMES.some(n => name === n);
+        if (isMe) myActions.push({ desc: ai.description, mtgTitle: mtg.title, mtgUrl: mtg.url });
+      }
+    }
+
+    document.getElementById('actions-badge').textContent = myActions.length;
+
+    if (!myActions.length) {
+      document.getElementById('actions-body').innerHTML = '<div class="empty">No open action items assigned to you ✓</div>';
+      return;
+    }
+
+    document.getElementById('actions-body').innerHTML = myActions.map(ai => `
+      <div class="item">
+        <span class="item-title">${trunc(ai.desc, 90)}</span>
+        <div class="item-meta">
+          <span class="dot dot-orange"></span>
+          <a class="source-link" href="${ai.mtgUrl || '#'}" target="_blank">${trunc(ai.mtgTitle, 60)}</a>
+        </div>
+      </div>`).join('');
+
+  } catch(e) {
+    document.getElementById('actions-badge').textContent = '!';
+    document.getElementById('actions-body').innerHTML = `<div class="error-msg">${e.message || 'Failed to load action items'}</div>`;
+  }
+}
+
+// ── EMAILS ────────────────────────────────────────────
+async function loadEmails() {
+  try {
+    const result = await window.cowork.callMcpTool(EMAIL_TOOL, {
+      query: '*',
+      afterDateTime: '3 days ago',
+      folderName: 'Inbox',
+      limit: 15
+    });
+
+    const emails = extractItems(result)
+      .filter(e => e && e.subject)
+      .sort((a, b) => new Date(b.receivedDateTime) - new Date(a.receivedDateTime));
+
+    document.getElementById('email-badge').textContent = emails.length;
+
+    if (!emails.length) {
+      document.getElementById('email-body').innerHTML = '<div class="empty">Inbox is clear</div>';
+      return;
+    }
+
+    document.getElementById('email-body').innerHTML = emails.map(em => {
+      const sender = (em.sender || '').split('@')[0].replace(/[._]/g, ' ');
+      const dt = fmtDate(em.receivedDateTime) + ' · ' + fmtTime(em.receivedDateTime);
+      const unread = !em.isRead
+        ? '<span style="color:#059669;font-size:9px;font-weight:700;flex-shrink:0">UNREAD</span>' : '';
+      return `
+        <div class="item">
+          <a class="item-title" href="${em.webLink || '#'}" target="_blank">${em.subject}</a>
+          <div class="item-meta">${unread}<span class="meta-text">${sender}</span><span style="flex-shrink:0">·</span><span style="flex-shrink:0">${dt}</span></div>
+        </div>`;
+    }).join('');
+
+  } catch(e) {
+    document.getElementById('email-badge').textContent = '!';
+    document.getElementById('email-body').innerHTML = `<div class="error-msg">${e.message || 'Failed to load emails'}</div>`;
+  }
+}
+
+// ── INIT ──────────────────────────────────────────────
+async function init() {
+  setDateDisplay();
+  await Promise.all([loadCalendar(), loadActions(), loadEmails()]);
+  document.getElementById('last-updated').textContent =
+    'Updated ' + new Date().toLocaleTimeString(undefined, { hour:'numeric', minute:'2-digit' });
+}
+
+init();
+</script>
+</body>
+</html>
